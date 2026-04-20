@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# FastAPI / uvicorn
+*.log
+
+# Node / React (future frontend)
+node_modules/
+dist/
+.next/
+out/
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Claude Code
+.claude/settings.local.json
+
+# Attack Payloads
+backend/payloads.json
