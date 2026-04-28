@@ -32,8 +32,22 @@ app.add_middleware(
 jobs: dict = {}
 
 # ── Payload library ────────────────────────────────────────────────────────────
-PAYLOAD_PATH = Path(__file__).parent / "payloads.json"
-with open(PAYLOAD_PATH) as f:
+# payloads.json is gitignored. On a fresh clone we fall back to the committed
+# payloads.json.example so the app boots; copy it to payloads.json and edit.
+PAYLOAD_DIR     = Path(__file__).parent
+PAYLOAD_PATH    = PAYLOAD_DIR / "payloads.json"
+EXAMPLE_PATH    = PAYLOAD_DIR / "payloads.json.example"
+ACTIVE_PAYLOADS = PAYLOAD_PATH if PAYLOAD_PATH.exists() else EXAMPLE_PATH
+
+if not ACTIVE_PAYLOADS.exists():
+    raise FileNotFoundError(
+        f"No payload library found at {PAYLOAD_PATH} or {EXAMPLE_PATH}."
+    )
+
+if ACTIVE_PAYLOADS == EXAMPLE_PATH:
+    print(f"[warn] payloads.json not found — using {EXAMPLE_PATH.name} (placeholder payloads).")
+
+with open(ACTIVE_PAYLOADS) as f:
     PAYLOAD_LIBRARY = json.load(f)
 
 

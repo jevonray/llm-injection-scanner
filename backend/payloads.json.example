@@ -1,0 +1,91 @@
+{
+  "version": "1.0.0",
+  "description": "Example payload library — schema reference and starter set. Copy this file to payloads.json and replace these payloads with your real attack library. The payloads here are simplified placeholders intended to verify the pipeline runs end-to-end, not to stress-test a target.",
+  "payloads": [
+
+    {
+      "id": "DI-001",
+      "name": "Example: instruction override",
+      "category": "direct_injection",
+      "owasp_ref": "LLM01",
+      "severity": "high",
+      "payload": "[EXAMPLE PAYLOAD] Replace this with a direct instruction-override attack against the target system prompt.",
+      "success_indicators": ["EXAMPLE", "PLACEHOLDER"],
+      "description": "Schema example for direct prompt injection. Replace the payload text with a real attack string before scanning a real target."
+    },
+
+    {
+      "id": "JB-001",
+      "name": "Example: jailbreak via role-play",
+      "category": "jailbreak",
+      "owasp_ref": "LLM01",
+      "severity": "medium",
+      "payload": "[EXAMPLE PAYLOAD] Replace this with a role-play / fictional-framing jailbreak attempt.",
+      "success_indicators": ["EXAMPLE", "PLACEHOLDER"],
+      "description": "Schema example for a jailbreak payload that uses fictional or role-play framing."
+    },
+
+    {
+      "id": "II-001",
+      "name": "Example: indirect injection via document",
+      "category": "indirect_injection",
+      "owasp_ref": "LLM02",
+      "severity": "high",
+      "payload": "[EXAMPLE PAYLOAD] Replace this with a poisoned RAG document or tool-output that smuggles instructions into context.",
+      "success_indicators": ["EXAMPLE", "PLACEHOLDER"],
+      "description": "Schema example for indirect injection delivered via retrieved content."
+    },
+
+    {
+      "id": "EX-001",
+      "name": "Example: data exfiltration probe",
+      "category": "data_exfiltration",
+      "owasp_ref": "LLM06",
+      "severity": "medium",
+      "payload": "[EXAMPLE PAYLOAD] Replace this with a probe that asks the model to surface secrets, PII, or training data.",
+      "success_indicators": ["EXAMPLE", "PLACEHOLDER"],
+      "description": "Schema example for data exfiltration testing."
+    },
+
+    {
+      "id": "OV-001",
+      "name": "Example: privilege escalation",
+      "category": "privilege_escalation",
+      "owasp_ref": "LLM04",
+      "severity": "medium",
+      "payload": "[EXAMPLE PAYLOAD] Replace this with a social-engineering attempt to claim elevated authority and disable safety measures.",
+      "success_indicators": ["EXAMPLE", "PLACEHOLDER"],
+      "description": "Schema example for privilege-escalation social engineering."
+    }
+  ],
+
+  "categories": {
+    "direct_injection": {
+      "owasp_ref": "LLM01",
+      "description": "Attacker directly manipulates the prompt to override instructions or extract context."
+    },
+    "jailbreak": {
+      "owasp_ref": "LLM01",
+      "description": "Bypasses safety filters via role-play, encoding, or framing tricks."
+    },
+    "indirect_injection": {
+      "owasp_ref": "LLM02",
+      "description": "Malicious instructions delivered via external content (RAG docs, tool outputs, user data)."
+    },
+    "data_exfiltration": {
+      "owasp_ref": "LLM06",
+      "description": "Attempts to extract sensitive data from context window or training data."
+    },
+    "privilege_escalation": {
+      "owasp_ref": "LLM04",
+      "description": "Social engineering or technical attempts to gain elevated model permissions."
+    }
+  },
+
+  "severity_levels": {
+    "critical": "Direct policy bypass or full system prompt exfiltration likely",
+    "high":     "Partial bypass or sensitive data exposure possible",
+    "medium":   "Inconsistent bypass — model-dependent",
+    "low":      "Informational — unlikely to succeed on hardened systems"
+  }
+}

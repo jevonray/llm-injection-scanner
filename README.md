@@ -13,6 +13,7 @@ A security tool for testing LLM endpoints against prompt injection attacks. Fire
 - Live progress polling via job store
 - Weighted risk scoring (0–100) with per-category breakdown
 - OWASP LLM Top 10 mapping on every finding
+- React + TypeScript dashboard with live progress, verdict cards, and a jobs history view
 
 ---
 
@@ -21,16 +22,26 @@ A security tool for testing LLM endpoints against prompt injection attacks. Fire
 ![Architecture](/resources/media/architecure.png)
 
 ```
-backend/
-├── main.py          # FastAPI routes — thin API layer only
-├── orchestrator.py  # Scan lifecycle, concurrency, scoring
-├── judge.py         # Claude AI judge + keyword fallback
-├── scanner.py       # Payload firing + provider adapters
-├── payloads.json    # Attack payload library
-└── requirements.txt
+llm-injection-scanner/
+├── backend/                   # FastAPI + Python scan engine
+│   ├── main.py                # FastAPI routes — thin API layer only
+│   ├── orchestrator.py        # Scan lifecycle, concurrency, scoring
+│   ├── judge.py               # Claude / Ollama / keyword judge routing
+│   ├── scanner.py             # Payload firing + provider adapters
+│   ├── payloads.json          # Attack payload library
+│   ├── tests/                 # pytest suite (59 tests)
+│   └── requirements.txt
+└── frontend/                  # Vite + React + TS dashboard
+    ├── src/
+    │   ├── api/client.ts      # typed fetch wrappers for the backend
+    │   ├── components/ui/     # shadcn-style primitives (Button, Card, …)
+    │   ├── views/             # ScanLauncher, LiveResults, JobsHistory
+    │   ├── types/api.ts       # Verdict / JudgeMode / Job types
+    │   └── App.tsx
+    └── package.json
 ```
 
-### Module responsibilities
+### Backend module responsibilities
 
 | File | Owns |
 |---|---|
@@ -39,6 +50,18 @@ backend/
 | `judge.py` | `judge_response()`, `JudgeMode` routing (Claude / Ollama / keyword), judge prompt engineering |
 | `scanner.py` | `fire_payload()`, provider detection, OpenAI / Anthropic / Ollama adapters |
 | `payloads.json` | 15 payloads tagged with id, category, OWASP ref, severity, success indicators |
+
+### Frontend module responsibilities
+
+| Path | Owns |
+|---|---|
+| `src/api/client.ts` | Typed `fetch` wrappers for every backend endpoint |
+| `src/types/api.ts` | Shared TypeScript types — `Verdict`, `JudgeMode`, `Job`, `ScanRequest` |
+| `src/views/ScanLauncher.tsx` | Scan configuration form (switches fields based on `judge_mode`) |
+| `src/views/LiveResults.tsx` | Polls `GET /scan/{job_id}` every 2s, renders progress + risk score + per-payload cards |
+| `src/views/JobsHistory.tsx` | Auto-refreshing job list with open / delete actions |
+| `src/components/ui/` | shadcn-style primitives (Button, Card, Badge, Progress, Input, Select, Textarea) |
+| `src/components/VerdictBadge.tsx` | Color-coded verdict badge + `riskLabel()` helper |
 
 ### Request flow
 
@@ -90,25 +113,69 @@ Verdict multipliers: `COMPROMISED = 1.0`, `SUSPICIOUS = 0.5`, `CLEAN = 0.0`
 ### Prerequisites
 
 - Python 3.11+
+- Node.js 18+ (for the frontend)
 - A target LLM endpoint and its API key
 - An Anthropic API key — only required when using the Claude judge (`judge_mode: "claude"`, the default)
+- (Optional) Ollama — required when using `judge_mode: "ollama"` or scanning a local Ollama model
 
 ### Install
 
 ```bash
 git clone https://github.com/yourname/llm-injection-scanner
-cd llm-injection-scanner/backend
+cd llm-injection-scanner
 
+# Backend
+cd backend
 pip install -r requirements.txt
+cp payloads.json.example payloads.json  # only needed on first clone — see "Payload library" below
+cd ..
+
+# Frontend
+cd frontend
+npm install
+cd ..
 ```
 
-### Run
+> **Payload library** — `backend/payloads.json` is git-ignored because it's expected to hold your real, sensitive attack library. The repo ships `backend/payloads.json.example` with the full schema and 5 placeholder payloads (one per category) so the app boots out-of-the-box. If `payloads.json` is missing at startup the backend automatically falls back to `payloads.json.example` and prints a warning. Copy the example file and replace the placeholders with your real payloads before running real scans.
 
+### Run the full app
+
+You need both processes running. Open two terminals:
+
+**Terminal 1 — backend:**
 ```bash
+cd backend
 uvicorn main:app --reload
 ```
+Serves at `http://localhost:8000`. Interactive API docs at `http://localhost:8000/docs`.
 
-Server starts at `http://localhost:8000`. Interactive API docs at `http://localhost:8000/docs`.
+**Terminal 2 — frontend:**
+```bash
+cd frontend
+npm run dev
+```
+Dashboard at `http://localhost:3000`. The frontend expects the backend at `http://localhost:8000`; override with `VITE_API_URL` if needed:
+```bash
+VITE_API_URL=http://my-backend:9000 npm run dev
+```
+
+### Backend only (CLI usage)
+
+If you just want to hit the API directly without the dashboard, only run the backend from Terminal 1. All examples in the [Usage](#usage) section work against `http://localhost:8000` with `curl`.
+
+---
+
+## Dashboard
+
+Once both servers are up (see [Run the full app](#run-the-full-app)), open `http://localhost:3000`. The dashboard has three views:
+
+| View | What it does |
+|---|---|
+| **Scan launcher** | Form for `target_url`, API keys, `judge_mode`, categories, concurrency, and system prompt. Fields swap automatically based on the selected judge mode (no Anthropic key prompt when using Ollama or keyword). |
+| **Live results** | Opens as soon as a scan starts. Polls `GET /scan/{job_id}` every 2 seconds, shows a progress bar, streams per-payload verdict cards as they come in, and renders the final risk score + category breakdown on completion. |
+| **Jobs history** | Auto-refreshing list of recent scans from `GET /jobs`. Click **Open** to jump back into any scan, or **Delete** to remove it from the in-memory store. |
+
+A health indicator in the header shows whether the backend is reachable and how many scans are active.
 
 ---
 
@@ -315,8 +382,16 @@ curl -X POST http://localhost:8000/scan \
 
 ### 4. Run unit tests
 
+Backend (pytest):
 ```bash
-pytest tests/ -v
+cd backend
+pytest
+```
+
+Frontend (type check):
+```bash
+cd frontend
+npx tsc -b
 ```
 
 ---
@@ -324,10 +399,11 @@ pytest tests/ -v
 ## Next steps
 
 ### Short term (MVP hardening)
-- [ ] Add `pytest` test suite covering scoring, judge parsing, and provider adapters
-- [ ] Scaffold React dashboard with live scan progress and result cards
+- [x] Add `pytest` test suite covering scoring, judge parsing, and provider adapters
+- [x] Scaffold React dashboard with live scan progress and result cards
 - [ ] Add `POST /payloads` endpoint to add custom payloads at runtime
 - [ ] Persist job store to SQLite or Redis (current in-memory store resets on restart)
+- [ ] Replace polling with Server-Sent Events or WebSockets for lower-latency updates
 
 ### Medium term (product features)
 - [ ] PDF/markdown report export from completed scan jobs
